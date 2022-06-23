@@ -111,7 +111,7 @@ class GildedRoseTest extends TestCase
     {
         $days = random_int(1, 10);
         $quality = random_int(10, 30);
-        $sulfurasFixedValue = 80;
+        $sulfurasFixedValue = GildedRose::SULFURAS_QUALITY;
 
         $items = [
                 new Item('Sulfuras, Hand of Ragnaros', $days, $quality),

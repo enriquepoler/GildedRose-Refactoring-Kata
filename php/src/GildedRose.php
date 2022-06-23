@@ -6,10 +6,13 @@ namespace GildedRose;
 
 final class GildedRose
 {
-    /**
-     * @var Item[]
-     */
+
     private $items;
+    private const BACKSTAGE = 'Backstage passes to a TAFKAL80ETC concert';
+    private const SULFURAS = 'Sulfuras, Hand of Ragnaros';
+    private const AGED_BRIE = 'Aged Brie';
+    private const CONJURED = 'Conjured';
+    public const SULFURAS_QUALITY = 80;
 
     public function __construct(array $items)
     {
@@ -27,59 +30,142 @@ final class GildedRose
     public function updateQuality(): void
     {
         foreach ($this->items as $item) {
-            if($item->name === 'Sulfuras, Hand of Ragnaros'){
-                $item->quality = 80;
-            }
-            if ($item->name!='Aged Brie' and $item->name!='Backstage passes to a TAFKAL80ETC concert' and
-                    !str_contains($item->name, 'Conjured')) {
-                if ($item->quality > 0) {
-                    if ($item->name!='Sulfuras, Hand of Ragnaros') {
-                        $item->quality = $item->quality - 1;
-                    }
-                }
-            } else {
-                if (!str_contains($item->name, 'Conjured')) {
-                    if ($item->quality < 50) {
-                        $item->quality = $item->quality + 1;
-                        if ($item->name=='Backstage passes to a TAFKAL80ETC concert') {
-                            if ($item->sell_in < 11) {
-                                if ($item->quality < 50) {
-                                    $item->quality = $item->quality + 1;
-                                }
-                            }
-                            if ($item->sell_in < 6) {
-                                if ($item->quality < 50) {
-                                    $item->quality = $item->quality + 1;
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    $item->quality = $item->quality - 2;
-                }
+
+            if ($this->isSulfuras($item)) {
+                $this->setQuality($item, self::SULFURAS_QUALITY);
+                continue;
             }
 
-            if ($item->name!='Sulfuras, Hand of Ragnaros') {
-                $item->sell_in = $item->sell_in - 1;
+            if($this->isBackstagePasses($item)){
+                $this->updateBackStacgePasses($item);
+                continue;
             }
 
-            if ($item->sell_in < 0) {
-                if ($item->name!='Aged Brie') {
-                    if ($item->name!='Backstage passes to a TAFKAL80ETC concert') {
-                        if ($item->quality > 0) {
-                            if ($item->name!='Sulfuras, Hand of Ragnaros') {
-                                $item->quality = $item->quality - 1;
-                            }
-                        }
-                    } else {
-                        $item->quality = $item->quality - $item->quality;
-                    }
-                } else {
-                    if ($item->quality < 50) {
-                        $item->quality = $item->quality + 1;
-                    }
-                }
+            if($this->isAgedBrie($item)){
+                $this->updateAgedBrie($item);
+                continue;
+            }
+
+            if ($this->isConjuredItem($item)){
+                $this->updateConjuredItem($item);
+                continue;
+            }
+
+            $this->updateNormalItem($item);
+        }
+    }
+
+    private function reduceSellIn(Item $item, $days)
+    {
+        $item->sell_in -= $days;
+    }
+
+    private function reduceQuality(Item $item, $quality)
+    {
+        $item->quality -= $quality;
+    }
+
+    private function addQuality(Item $item, $quality)
+    {
+        $item->quality += $quality;
+    }
+
+    private function isSellInBiggerThanZero(Item $item)
+    {
+        return $item->sell_in > 0;
+    }
+
+    private function isQualityBiggerThanZero(Item $item)
+    {
+        return $item->quality > 0;
+    }
+
+    private function isAgedBrie(Item $item)
+    {
+        return $item->name=== self::AGED_BRIE;
+    }
+
+    private function isSulfuras(Item $item)
+    {
+        return $item->name=== self::SULFURAS;
+    }
+
+    private function isBackstagePasses(Item $item)
+    {
+        return $item->name === self::BACKSTAGE;
+    }
+
+    private function isQualityBiggerThanfifty(Item $item)
+    {
+        if($item->quality > 50){
+            $this->setQuality($item, 50);
+        }
+    }
+
+    private function setQuality(Item $item, $quality)
+    {
+        $item->quality = $quality;
+    }
+
+    private function isSellInBiggerThan(Item $item, $days){
+        return $item->sell_in > $days;
+    }
+
+    private function updateBackStacgePasses(Item $item)
+    {
+
+        if ($this->isSellInBiggerThan($item, 10)) {
+            $this->addQuality($item, 1);
+        }elseif($this->isSellInBiggerThan($item, 5)){
+            $this->addQuality($item, 2);
+        }elseif ($this->isSellInBiggerThan($item, 1)){
+            $this->addQuality($item, 3);
+        }else{
+            $this->setQuality($item, 0);
+        }
+        $this->reduceSellIn($item, 1);
+        $this->isQualityBiggerThanfifty($item);
+
+    }
+
+    private function updateNormalItem($item){
+        if ($this->isSellInBiggerThanZero($item)) {
+
+            if ($this->isQualityBiggerThanZero($item)) {
+                $this->reduceQuality($item, 1);
+            }
+        } else {
+
+            if ($this->isQualityBiggerThanZero($item)) {
+                $this->reduceQuality($item, 2);
             }
         }
+
+        $this->reduceSellIn($item, 1);
+        $this->isQualityBiggerThanfifty($item);
+    }
+
+    private function updateAgedBrie($item){
+        if ($this->isSellInBiggerThanZero($item)){
+            $this->addQuality($item, 1);
+        }else{
+            $this->addQuality($item, 2);
+        }
+        $this->reduceSellIn($item, 1);
+
+        $this->isQualityBiggerThanfifty($item);
+    }
+
+    private function isConjuredItem(Item $item){
+        return str_contains($item->name, self::CONJURED);
+    }
+
+    private function updateConjuredItem(Item $item){
+        if ($this->isQualityBiggerThanZero($item)) {
+                $this->reduceQuality($item, 2);
+            }
+
+        $this->reduceSellIn($item, 1);
+        $this->isQualityBiggerThanfifty($item);
     }
 }
